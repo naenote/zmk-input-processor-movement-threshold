@@ -1,0 +1,3 @@
+config ZMK_INPUT_PROCESSOR_MOVEMENT_THRESHOLD
+  bool "Movement threshold filter input processor"
+  depends on ZMK_POINTING

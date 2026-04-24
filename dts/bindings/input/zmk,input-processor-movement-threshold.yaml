@@ -1,0 +1,17 @@
+description: |
+  Filters X/Y movement events whose absolute value is <= threshold (param1).
+  Events below the threshold are consumed and will not trigger auto-mouse-layer.
+
+  Usage example:
+    zip_movement_threshold: zip_movement_threshold {
+        compatible = "zmk,input-processor-movement-threshold";
+        #input-processor-cells = <1>;
+    };
+    // In listener: <&zip_movement_threshold 8>
+
+compatible: "zmk,input-processor-movement-threshold"
+
+properties:
+  "#input-processor-cells":
+    type: int
+    const: 1
