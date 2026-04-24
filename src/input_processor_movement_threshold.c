@@ -21,7 +21,7 @@ static int movement_threshold_handle_event(const struct device *dev,
         val = -val;
     }
     if (val <= (int32_t)param1) {
-        event->value = 0;
+        return ZMK_INPUT_PROC_STOP;
     }
     return ZMK_INPUT_PROC_CONTINUE;
 }
