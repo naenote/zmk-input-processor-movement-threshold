@@ -4,7 +4,7 @@
 #include <zephyr/device.h>
 #include <zephyr/input/input.h>
 #include <zephyr/sys/util.h>
-#include <zmk/input/processors.h>
+#include <zmk/input_processor.h>
 
 static int movement_threshold_handle_event(const struct device *dev,
                                             struct input_event *event,
