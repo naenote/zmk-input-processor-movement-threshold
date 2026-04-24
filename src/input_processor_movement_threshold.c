@@ -3,6 +3,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/input/input.h>
+#include <zephyr/sys/util.h>
 #include <zmk/input/processors.h>
 
 static int movement_threshold_handle_event(const struct device *dev,
@@ -15,8 +16,12 @@ static int movement_threshold_handle_event(const struct device *dev,
     if (event->code != INPUT_REL_X && event->code != INPUT_REL_Y) {
         return ZMK_INPUT_PROC_CONTINUE;
     }
-    if (abs(event->value) <= (int32_t)param1) {
-        return ZMK_INPUT_PROC_STOP;
+    int32_t val = event->value;
+    if (val < 0) {
+        val = -val;
+    }
+    if (val <= (int32_t)param1) {
+        event->value = 0;
     }
     return ZMK_INPUT_PROC_CONTINUE;
 }
