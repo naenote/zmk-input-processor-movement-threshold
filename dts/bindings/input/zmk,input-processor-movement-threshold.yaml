@@ -16,5 +16,5 @@ properties:
     type: int
     const: 1
 
-cell-names:
+input-processor-cells:
   - threshold
