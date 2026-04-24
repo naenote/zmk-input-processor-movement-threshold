@@ -15,6 +15,8 @@ properties:
   "#input-processor-cells":
     type: int
     const: 1
+  track-remainders:
+    type: boolean
 
 input-processor-cells:
   - threshold
