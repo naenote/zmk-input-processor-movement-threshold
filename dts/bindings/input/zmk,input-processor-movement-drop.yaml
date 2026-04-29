@@ -1,0 +1,23 @@
+description: |
+  Stops X/Y movement events from propagating further in the processor chain,
+  preventing HID pointer updates while leaving scroll and button events unaffected.
+
+  Intended as the final processor in a dedicated AML-only input listener, so that
+  AML-activating processors (e.g. zip_temp_layer) run for large movements but the
+  HID report is never updated from that listener (avoiding double pointer movement).
+
+  Usage example — place last in the AML listener's processor chain:
+    zip_movement_drop: zip_movement_drop {
+        compatible = "zmk,input-processor-movement-drop";
+        #input-processor-cells = <0>;
+    };
+    // In AML listener: <&zip_movement_threshold 8>, <&zip_temp_layer MOUSE 300>, <&zip_movement_drop>
+
+compatible: "zmk,input-processor-movement-drop"
+
+properties:
+  "#input-processor-cells":
+    type: int
+    const: 0
+
+input-processor-cells: []
