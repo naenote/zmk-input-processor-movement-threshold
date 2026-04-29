@@ -64,6 +64,7 @@ X/Y 移動イベントを常に停止します。AML 専用リスナーの**最�
 ```conf
 # .conf
 CONFIG_ZMK_POINTING=y
+# CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_THRESHOLD は DTS にノードがあれば自動で有効になります
 ```
 
 ```dts
@@ -93,6 +94,8 @@ CONFIG_ZMK_POINTING=y
 ```conf
 # .conf
 CONFIG_ZMK_POINTING=y
+# CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_THRESHOLD と CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_DROP は
+# DTS にノードがあれば自動で有効になります
 ```
 
 ```dts
@@ -195,6 +198,7 @@ Simple single-listener setup when you are comfortable with the pointer not movin
 ```conf
 # .conf
 CONFIG_ZMK_POINTING=y
+# CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_THRESHOLD is enabled automatically when the node is present in the devicetree
 ```
 
 ```dts
@@ -224,6 +228,8 @@ When you want the pointer to move even for small movements and only suppress AML
 ```conf
 # .conf
 CONFIG_ZMK_POINTING=y
+# CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_THRESHOLD and CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_DROP
+# are enabled automatically when their nodes are present in the devicetree
 ```
 
 ```dts
