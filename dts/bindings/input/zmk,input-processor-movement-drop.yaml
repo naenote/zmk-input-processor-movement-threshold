@@ -19,5 +19,7 @@ properties:
   "#input-processor-cells":
     type: int
     const: 0
+  track-remainders:
+    type: boolean
 
 input-processor-cells: []
