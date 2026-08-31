@@ -18,5 +18,9 @@ properties:
   track-remainders:
     type: boolean
 
+# NOTE: ZMK reads processor parameters by the literal cell names `param1` and
+# `param2` (see ZMK_INPUT_PROCESSOR_ENTRY_AT_IDX in drivers/input_processor.h).
+# A cell named anything else makes DT_PHA_HAS_CELL_AT_IDX() report 0, and the
+# parameter is silently substituted with 0 instead of the value in the DTS.
 input-processor-cells:
-  - threshold
+  - param1

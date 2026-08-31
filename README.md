@@ -14,6 +14,8 @@
 
 > **注意:** `ZMK_INPUT_PROC_STOP` は後続プロセッサだけでなく HID 更新（ポインタ移動）も止めます。閾値以下のときにポインタを動かしつつ AML を発動させないためには、後述の **2 リスナー構成**を使用してください。
 
+> **重要 (バグ修正):** 以前のバージョンは binding のセル名を `threshold` としていましたが、ZMK はプロセッサのパラメータを `param1` / `param2` という**リテラルなセル名**で読み出します（`drivers/input_processor.h` の `ZMK_INPUT_PROCESSOR_ENTRY_AT_IDX`）。そのため `DT_PHA_HAS_CELL_AT_IDX()` が 0 を返し、**DTS に書いた閾値は無視されて常に 0 が使われていました**（＝閾値が事実上無効）。セル名を `param1` に修正済みです。DTS の書き方は変わりませんが、更新すると初めて閾値が実際に効き始めるため、値の再調整が必要です。
+
 ### インストール
 
 `zmk-config` の `config/west.yml` にこのモジュールを追加します。
@@ -147,6 +149,8 @@ A ZMK Input Processor module that suppresses spurious trackball/trackpad movemen
 When typing, physical vibrations can cause the trackball to register tiny movements, unintentionally activating the Auto Mouse Layer (AML). This module stops propagation to subsequent processors when an X/Y movement event's absolute value is at or below a configurable threshold, preventing false AML triggers.
 
 > **Note:** `ZMK_INPUT_PROC_STOP` halts both subsequent processors **and** the HID update (pointer movement). To keep the pointer moving for sub-threshold events while still suppressing AML, use the **dual-listener pattern** described below.
+
+> **Important (bug fix):** earlier versions named the binding's cell `threshold`, but ZMK reads processor parameters by the **literal cell names** `param1` / `param2` (see `ZMK_INPUT_PROCESSOR_ENTRY_AT_IDX` in `drivers/input_processor.h`). `DT_PHA_HAS_CELL_AT_IDX()` therefore returned 0 and **the threshold written in the DTS was ignored, with 0 substituted instead** — effectively disabling the filter. The cell is now named `param1`. Your DTS does not change, but after updating the threshold takes effect for the first time, so you will need to retune the value.
 
 ### Installation
 
