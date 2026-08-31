@@ -1,0 +1,37 @@
+description: |
+  Passes X/Y movement events only after the movement has been sustained for at
+  least param1 milliseconds. The measurement restarts when no movement event has
+  arrived for param2 milliseconds.
+
+  A keystroke shock jolts the ball for a single short burst of reports and is
+  filtered out; deliberate pointer movement lasts long enough to pass. Unlike a
+  pure magnitude threshold this discriminates by how long the movement lasts, so
+  it is not defeated by a hard knock.
+
+  Events before the duration is reached are consumed (ZMK_INPUT_PROC_STOP),
+  which also stops the HID update — use this in an AML-only listener, never in
+  the listener that drives the pointer.
+
+  Usage example:
+    zip_movement_sustain: zip_movement_sustain {
+        compatible = "zmk,input-processor-movement-sustain";
+        #input-processor-cells = <2>;
+    };
+    // In AML listener: <&zip_movement_sustain 60 150>
+    //   param1 = 60  : movement must last 60ms before AML may trigger
+    //   param2 = 150 : a 150ms pause in movement restarts the measurement
+
+compatible: "zmk,input-processor-movement-sustain"
+
+properties:
+  "#input-processor-cells":
+    type: int
+    const: 2
+  track-remainders:
+    type: boolean
+
+# NOTE: the cell names MUST be `param1`/`param2` — ZMK looks them up by those
+# exact names and silently substitutes 0 for anything else.
+input-processor-cells:
+  - param1
+  - param2

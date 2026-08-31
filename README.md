@@ -14,6 +14,8 @@
 
 > **注意:** `ZMK_INPUT_PROC_STOP` は後続プロセッサだけでなく HID 更新（ポインタ移動）も止めます。閾値以下のときにポインタを動かしつつ AML を発動させないためには、後述の **2 リスナー構成**を使用してください。
 
+> **重要 (v2 での修正):** 以前のバージョンは binding のセル名を `threshold` としていましたが、ZMK はプロセッサのパラメータを `param1` / `param2` という**リテラルなセル名**で読み出します（`drivers/input_processor.h` の `ZMK_INPUT_PROCESSOR_ENTRY_AT_IDX`）。そのため `DT_PHA_HAS_CELL_AT_IDX()` が 0 を返し、**DTS に書いた閾値は無視されて常に 0 が使われていました**（＝閾値が事実上無効）。セル名を `param1` に修正済みです。DTS の書き方は変わりませんが、更新すると初めて閾値が実際に効き始めるため、値の再調整が必要な場合があります。
+
 ### インストール
 
 `zmk-config` の `config/west.yml` にこのモジュールを追加します。
@@ -46,6 +48,19 @@ X または Y の絶対値が閾値**以下**の場合、後続のプロセッ�
 | パラメータ | 説明 |
 |-----------|------|
 | `threshold` | 移動量の閾値。X または Y の絶対値がこの値以下で停止。 |
+
+#### `zmk,input-processor-movement-sustain`
+
+移動が **param1 ミリ秒以上継続する**まで、X/Y 移動イベントの伝搬を停止します。移動イベントが **param2 ミリ秒**途切れると、計測をやり直します。
+
+打鍵の衝撃はレポート数回分（数十 ms）の単発バーストで終わるため通過しません。一方、意図的にボールを転がす動作は十分に継続するため通過します。移動量の大小ではなく**継続時間**で判別するので、強い衝撃で大きな移動量が出ても誤爆しません。
+
+| パラメータ | 説明 |
+|-----------|------|
+| `param1` | 継続時間のしきい値（ms）。この時間だけ移動が続いて初めて通過する。 |
+| `param2` | バーストの区切り（ms）。この時間だけ移動が途切れると計測をリセット。 |
+
+> **注意:** 継続時間に満たない間はイベントを停止する＝HID 更新も止まります。**AML 専用リスナーにのみ**置いてください（ポインタを動かすリスナーに入れると、動き始めの param1 ミリ秒ポインタが動かなくなります）。
 
 #### `zmk,input-processor-movement-drop`
 
@@ -136,6 +151,45 @@ CONFIG_ZMK_POINTING=y
 | 閾値以下 | ポインタ移動 ✓ | threshold が STOP → AML 発動しない ✓ |
 | 閾値超え | ポインタ移動 ✓ | threshold CONTINUE → AML 発動 ✓ → drop が HID をブロック ✓ |
 
+#### パターン 3: 打鍵衝撃を継続時間で弾く（推奨・2 リスナー構成）
+
+閾値だけでは、強い打鍵衝撃が閾値を超えてしまうと誤爆を防げません。`zip_movement_sustain` を挟むと「一瞬の衝撃」と「意図的な操作」を継続時間で区別できます。
+
+```dts
+/ {
+    zip_movement_threshold: zip_movement_threshold {
+        compatible = "zmk,input-processor-movement-threshold";
+        #input-processor-cells = <1>;
+    };
+
+    zip_movement_sustain: zip_movement_sustain {
+        compatible = "zmk,input-processor-movement-sustain";
+        #input-processor-cells = <2>;
+    };
+
+    zip_movement_drop: zip_movement_drop {
+        compatible = "zmk,input-processor-movement-drop";
+        #input-processor-cells = <0>;
+    };
+
+    /* Listener B: AML 専用 */
+    trackball_aml_listener: trackball_aml_listener {
+        compatible = "zmk,input-listener";
+        device = <&trackball>;
+        input-processors =
+            <&zip_movement_threshold 16>,   /* ノイズ相当の微小移動を除去 */
+            <&zip_movement_sustain 60 150>, /* 60ms 続かない動きは弾く */
+            <&zip_temp_layer MOUSE 300>,
+            <&zip_movement_drop>;
+    };
+};
+```
+
+**チューニングの目安:**
+
+- `param1`（継続時間）: 誤爆が残るなら伸ばす（80〜120ms）。AML に入るのが遅く感じるなら縮める（40ms 程度）。ポインタ移動自体は Listener A 側なので、この値を上げてもカーソルは遅くなりません。遅くなるのは「クリックできるようになるまで」の時間だけです。
+- `param2`（区切り）: 短すぎると、ゆっくり操作したときに計測がリセットされて AML に入れなくなります。150〜250ms 程度を推奨。
+
 ---
 
 ## English
@@ -147,6 +201,8 @@ A ZMK Input Processor module that suppresses spurious trackball/trackpad movemen
 When typing, physical vibrations can cause the trackball to register tiny movements, unintentionally activating the Auto Mouse Layer (AML). This module stops propagation to subsequent processors when an X/Y movement event's absolute value is at or below a configurable threshold, preventing false AML triggers.
 
 > **Note:** `ZMK_INPUT_PROC_STOP` halts both subsequent processors **and** the HID update (pointer movement). To keep the pointer moving for sub-threshold events while still suppressing AML, use the **dual-listener pattern** described below.
+
+> **Important (fixed in v2):** earlier versions named the binding's cell `threshold`, but ZMK reads processor parameters by the **literal cell names** `param1` / `param2` (see `ZMK_INPUT_PROCESSOR_ENTRY_AT_IDX` in `drivers/input_processor.h`). `DT_PHA_HAS_CELL_AT_IDX()` therefore returned 0 and **the threshold written in the DTS was ignored, with 0 substituted instead** — effectively disabling the filter. The cell is now named `param1`. Your DTS does not change, but after updating the threshold takes effect for the first time, so you may need to retune the value.
 
 ### Installation
 
@@ -180,6 +236,19 @@ Stops the processor chain (including HID update) when the absolute value of an X
 | Parameter | Description |
 |-----------|-------------|
 | `threshold` | Movement threshold. Events with abs(value) ≤ threshold are stopped. |
+
+#### `zmk,input-processor-movement-sustain`
+
+Stops X/Y movement events until the movement has been **sustained for param1 milliseconds**. The measurement restarts once movement has been absent for **param2 milliseconds**.
+
+A keystroke shock jolts the ball for a single short burst of reports (a few tens of ms) and never gets through, while deliberate pointer movement lasts long enough to pass. Because it discriminates by *duration* rather than magnitude, it is not defeated by a hard knock that produces a large delta.
+
+| Parameter | Description |
+|-----------|-------------|
+| `param1` | Duration threshold in ms. Movement must last this long before events pass. |
+| `param2` | Burst gap in ms. A pause this long resets the measurement. |
+
+> **Note:** events before the duration is reached are stopped, which also stops the HID update. Place it in an **AML-only listener** — in a pointer listener it would freeze the cursor for the first param1 milliseconds of every movement.
 
 #### `zmk,input-processor-movement-drop`
 
@@ -269,3 +338,42 @@ CONFIG_ZMK_POINTING=y
 |----------|---------------------|-----------------|
 | ≤ threshold | pointer moves ✓ | threshold STOPs → AML not triggered ✓ |
 | > threshold | pointer moves ✓ | threshold passes → AML activates ✓ → drop blocks HID ✓ |
+
+#### Pattern 3: Reject keystroke shocks by duration (recommended, dual-listener)
+
+A magnitude threshold alone cannot help once a hard keystroke shock exceeds it. Inserting `zip_movement_sustain` separates "a momentary jolt" from "deliberate input" by how long the movement lasts.
+
+```dts
+/ {
+    zip_movement_threshold: zip_movement_threshold {
+        compatible = "zmk,input-processor-movement-threshold";
+        #input-processor-cells = <1>;
+    };
+
+    zip_movement_sustain: zip_movement_sustain {
+        compatible = "zmk,input-processor-movement-sustain";
+        #input-processor-cells = <2>;
+    };
+
+    zip_movement_drop: zip_movement_drop {
+        compatible = "zmk,input-processor-movement-drop";
+        #input-processor-cells = <0>;
+    };
+
+    /* Listener B: AML only */
+    trackball_aml_listener: trackball_aml_listener {
+        compatible = "zmk,input-listener";
+        device = <&trackball>;
+        input-processors =
+            <&zip_movement_threshold 16>,   /* drop noise-level movement */
+            <&zip_movement_sustain 60 150>, /* reject movement shorter than 60ms */
+            <&zip_temp_layer MOUSE 300>,
+            <&zip_movement_drop>;
+    };
+};
+```
+
+**Tuning:**
+
+- `param1` (duration): raise it (80-120ms) if false triggers remain, lower it (~40ms) if entering AML feels sluggish. Pointer movement comes from Listener A, so raising this never slows the cursor — only the delay before clicks become available.
+- `param2` (gap): too short and slow, deliberate movement keeps resetting the measurement so AML never engages. 150-250ms works well.

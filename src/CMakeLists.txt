@@ -1,2 +1,3 @@
-target_sources(app PRIVATE input_processor_movement_threshold.c)
+target_sources_ifdef(CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_THRESHOLD app PRIVATE input_processor_movement_threshold.c)
 target_sources_ifdef(CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_DROP app PRIVATE input_processor_movement_drop.c)
+target_sources_ifdef(CONFIG_ZMK_INPUT_PROCESSOR_MOVEMENT_SUSTAIN app PRIVATE input_processor_movement_sustain.c)
